@@ -7,13 +7,8 @@ CLASSES = ["panNum", "name", "fatherName", "dob", "pancard"]
 
 def pan_detector(image_buffer):
     # Determine the model path
-    isDocker = os.path.isfile('/var/task/models/PanModel.onnx')
+    model_path = '/var/task/models/PanModel.onnx' if os.path.isfile('/var/task/models/PanModel.onnx') else 'models/PanModel.onnx'
     
-    if isDocker:
-        model_path = '/var/task/models/PanModel.onnx'
-    else:
-        model_path = 'models/PanModel.onnx'
-
     model = cv2.dnn.readNetFromONNX(model_path)
     
     # Read the image from buffer
@@ -64,7 +59,7 @@ def pan_detector(image_buffer):
             class_ids.append(maxClassIndex)
 
     # Apply NMS (Non-maximum suppression)
-    result_boxes = cv2.dnn.NMSBoxes(boxes, scores, 0.25, 0.45, 0.5)
+    result_boxes = cv2.dnn.NMSBoxes(boxes, scores, score_threshold=0.25, nms_threshold=0.45)
 
     detections = []
 

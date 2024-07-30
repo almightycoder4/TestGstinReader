@@ -7,13 +7,7 @@ CLASSES = ["gstinNo", "legalName", "tradeName", "constitutionOfBussiness", "doc"
 
 def gstin_detector(image_buffer):
     # Determine the model path
-    isDocker = os.path.isfile('/var/task/models/GstModel.onnx')
-    
-    if isDocker:
-        model_path = '/var/task/models/GstModel.onnx'
-    else:
-        model_path = 'models/GstModel.onnx'
-
+    model_path = '/var/task/models/GstinModel.onnx' if os.path.isfile('/var/task/models/GstModel.onnx') else 'models/GstModel.onnx'
     model = cv2.dnn.readNetFromONNX(model_path)
     
     # Read the image from buffer
@@ -64,7 +58,7 @@ def gstin_detector(image_buffer):
             class_ids.append(maxClassIndex)
 
     # Apply NMS (Non-maximum suppression)
-    result_boxes = cv2.dnn.NMSBoxes(boxes, scores, 0.25, 0.45, 0.5)
+    result_boxes = cv2.dnn.NMSBoxes(boxes, scores, score_threshold=0.25, nms_threshold=0.45)
 
     detections = []
 
