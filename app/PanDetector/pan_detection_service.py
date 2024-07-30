@@ -1,20 +1,21 @@
 import cv2
 import numpy as np
+import os
 
-CLASSES = ["class0", "class1", "class2", "class3", "class4", "class5"]
-colors = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+# Update class names
+CLASSES = ["panNum", "name", "fatherName", "dob", "pancard"]
 
-def draw_bounding_box(img, class_id, confidence, x, y, x_plus_w, y_plus_h):
-    label = f"{CLASSES[class_id]} ({confidence:.2f})"
-    color = colors[class_id]
-    cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
-    cv2.putText(img, label, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+def pan_detector(image_buffer):
+    # Determine the model path
+    isDocker = os.path.isfile('/var/task/models/PanModel.onnx')
+    
+    if isDocker:
+        model_path = '/var/task/models/PanModel.onnx'
+    else:
+        model_path = 'models/PanModel.onnx'
 
-def gstin_detector(image_buffer):
-    # model_path = '/var/task/models/GstModelv1.onnx'
-    model_path = 'models/GstModelv1.onnx'
     model = cv2.dnn.readNetFromONNX(model_path)
-
+    
     # Read the image from buffer
     file_bytes = np.asarray(bytearray(image_buffer.read()), dtype=np.uint8)
     original_image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
@@ -74,37 +75,31 @@ def gstin_detector(image_buffer):
         detection = {
             "class_id": class_ids[index],
             "class_name": CLASSES[class_ids[index]],
-            "confidence": scores[index],
+            "confidence": round(scores[index], 2),
             "box": box,
             "scale": scale,
         }
         detections.append(detection)
-        # draw_bounding_box(
-        #     original_image,
-        #     class_ids[index],
-        #     scores[index],
-        #     round(box[0] * scale),
-        #     round(box[1] * scale),
-        #     round((box[0] + box[2]) * scale),
-        #     round((box[1] + box[3]) * scale),
-        # )
     
     print(detections)
     return original_image, detections
 
-def merge_labels(original_image, detections):
+def merge_labels_pan(original_image, detections):
     label_images = []
-    sorted_classes = [0, 1, 2, 3, 4]  # Exclude class 5
-
+    sorted_classes = [0, 1, 2, 3]  # Exclude class 4
+    labels_with_confidences = {}
     for class_id in sorted_classes:
         class_detections = [d for d in detections if d['class_id'] == class_id]
-        for detection in class_detections:
-            x, y, w, h = detection['box']
-            x, y, w, h = int(x * detection['scale']), int(y * detection['scale']), int(w * detection['scale']), int(h * detection['scale'])
-            cropped_image = original_image[y:y+h, x:x+w]
-            if cropped_image.size == 0:  # Handle empty crops
-                continue
-            label_images.append(cropped_image)
+        if not class_detections:
+            continue
+        best_detection = max(class_detections, key=lambda d: d['confidence'])  # Select highest scoring detection for the class
+        labels_with_confidences[best_detection['class_name']] = best_detection['confidence']
+        x, y, w, h = best_detection['box']
+        x, y, w, h = int(x * best_detection['scale']), int(y * best_detection['scale']), int(w * best_detection['scale']), int(h * best_detection['scale'])
+        cropped_image = original_image[y:y+h, x:x+w]
+        if cropped_image.size == 0:  # Handle empty crops
+            continue
+        label_images.append(cropped_image)
 
     merged_height = sum([img.shape[0] for img in label_images]) + 50 * (len(label_images) - 1)
     merged_width = max([img.shape[1] for img in label_images])
@@ -115,5 +110,5 @@ def merge_labels(original_image, detections):
     for img in label_images:
         merged_image[y_offset:y_offset + img.shape[0], 0:img.shape[1]] = img
         y_offset += img.shape[0] + 50
-
-    return merged_image
+    
+    return merged_image, labels_with_confidences
