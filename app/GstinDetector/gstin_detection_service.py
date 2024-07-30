@@ -5,10 +5,17 @@ import os
 # Update class names
 CLASSES = ["gstinNo", "legalName", "tradeName", "constitutionOfBussiness", "doc", "gstinCertificate"]
 
+# Load the model globally
+MODEL_PATH = '/var/task/models/GstModel.onnx' if os.path.isfile('/var/task/models/GstModel.onnx') else 'models/GstModel.onnx'
+MODEL = None
+
+def load_model():
+    global MODEL
+    if MODEL is None:
+        MODEL = cv2.dnn.readNetFromONNX(MODEL_PATH)
+
 def gstin_detector(image_buffer):
-    # Determine the model path
-    model_path = '/var/task/models/GstinModel.onnx' if os.path.isfile('/var/task/models/GstModel.onnx') else 'models/GstModel.onnx'
-    model = cv2.dnn.readNetFromONNX(model_path)
+    load_model()
     
     # Read the image from buffer
     file_bytes = np.asarray(bytearray(image_buffer.read()), dtype=np.uint8)
@@ -29,10 +36,10 @@ def gstin_detector(image_buffer):
 
     # Preprocess the image and prepare blob for model
     blob = cv2.dnn.blobFromImage(image, scalefactor=1 / 255, size=(640, 640), swapRB=True)
-    model.setInput(blob)
+    MODEL.setInput(blob)
 
     # Perform inference
-    outputs = model.forward()
+    outputs = MODEL.forward()
 
     # Prepare output array
     outputs = np.array([cv2.transpose(outputs[0])])
@@ -80,7 +87,7 @@ def gstin_detector(image_buffer):
 
 def merge_labels_gstin(original_image, detections):
     label_images = []
-    sorted_classes = [0, 1, 2, 3, 4]  # Exclude class 4
+    sorted_classes = [0, 1, 2, 3, 4]  # Include necessary classes
     labels_with_confidences = {}
     for class_id in sorted_classes:
         class_detections = [d for d in detections if d['class_id'] == class_id]

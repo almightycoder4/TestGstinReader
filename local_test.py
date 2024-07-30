@@ -2,10 +2,10 @@ import json
 from main import lambda_handler
 
 event = {
-    "body": "{\n  \"imgUrl\": \"https://iduploadbucket.s3.ap-south-1.amazonaws.com/1000396079+-+SHRIRAM+-+AADHAAR.jpg\"\n}",
+    "body": "{\n  \"imgUrl\": \"https://iduploadbucket.s3.ap-south-1.amazonaws.com/1000132584+-+UNITED+-+GSTIN.jpg\"\n}",
     "httpMethod": "POST",
     "isBase64Encoded": False,
-    "path": "/ocrAdhaar"
+    "path": "/ocrGstin"
 }
 
 response = lambda_handler(event, None)

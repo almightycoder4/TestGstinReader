@@ -79,7 +79,7 @@ def lambda_handler(event, context):
                 "image": img_base64,
                 "confidence_values": labels_with_confidences,
                 "result": result_message,
-                "execution_time": execution_time
+                "execution_time": (f"{round(execution_time, 2)} sec"),
             })
         }
 

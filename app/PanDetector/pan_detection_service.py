@@ -5,11 +5,17 @@ import os
 # Update class names
 CLASSES = ["panNum", "name", "fatherName", "dob", "pancard"]
 
+# Load the model globally
+MODEL_PATH = '/var/task/models/PanModel.onnx' if os.path.isfile('/var/task/models/PanModel.onnx') else 'models/PanModel.onnx'
+MODEL = None
+
+def load_model():
+    global MODEL
+    if MODEL is None:
+        MODEL = cv2.dnn.readNetFromONNX(MODEL_PATH)
+
 def pan_detector(image_buffer):
-    # Determine the model path
-    model_path = '/var/task/models/PanModel.onnx' if os.path.isfile('/var/task/models/PanModel.onnx') else 'models/PanModel.onnx'
-    
-    model = cv2.dnn.readNetFromONNX(model_path)
+    load_model()
     
     # Read the image from buffer
     file_bytes = np.asarray(bytearray(image_buffer.read()), dtype=np.uint8)
@@ -30,10 +36,10 @@ def pan_detector(image_buffer):
 
     # Preprocess the image and prepare blob for model
     blob = cv2.dnn.blobFromImage(image, scalefactor=1 / 255, size=(640, 640), swapRB=True)
-    model.setInput(blob)
+    MODEL.setInput(blob)
 
     # Perform inference
-    outputs = model.forward()
+    outputs = MODEL.forward()
 
     # Prepare output array
     outputs = np.array([cv2.transpose(outputs[0])])
